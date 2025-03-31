@@ -3,68 +3,80 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Álbum Familiar</title>
+    <title>Álbum Familiar Interactivo</title>
     <style>
         body {
             font-family: Arial, sans-serif;
-            background-color: #f4f4f4;
             margin: 0;
             padding: 0;
+            background-color: #f4f4f4;
         }
+
         header {
             background-color: #333;
             color: #fff;
             text-align: center;
             padding: 20px;
         }
+
         .album-container {
-            display: flex;
-            flex-wrap: wrap;
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
             gap: 20px;
             padding: 20px;
-            justify-content: center;
+            transition: transform 0.5s ease-in-out;
         }
+
         .album-card {
-            width: 300px;
-            padding: 20px;
             background-color: #fff;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-            border-radius: 10px;
-            text-align: center;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
             cursor: pointer;
+            transition: transform 0.2s ease;
         }
-        .album-card h3 {
-            margin: 10px 0;
-        }
-        .album-card a {
-            text-decoration: none;
-            color: #333;
-        }
-        .album-card img, .album-card video {
+
+        .album-card img {
             width: 100%;
             height: auto;
-            border-radius: 8px;
-            margin-bottom: 15px;
         }
-        .file-container {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 20px;
-            padding: 20px;
+
+        .album-card:hover {
+            transform: scale(1.05);
         }
-        footer {
-            background-color: #333;
-            color: white;
-            text-align: center;
-            padding: 10px;
+
+        .modal {
+            display: none;
             position: fixed;
+            top: 0;
+            left: 0;
             width: 100%;
-            bottom: 0;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.8);
+            justify-content: center;
+            align-items: center;
+            z-index: 999;
         }
+
+        .modal img {
+            max-width: 80%;
+            max-height: 80%;
+        }
+
+        .modal .close {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            color: white;
+            font-size: 30px;
+            cursor: pointer;
+        }
+
         .pagination {
             text-align: center;
-            padding: 20px;
+            margin-top: 20px;
         }
+
         .pagination button {
             padding: 10px;
             margin: 5px;
@@ -72,31 +84,56 @@
             background-color: #333;
             color: white;
             cursor: pointer;
+            border-radius: 5px;
         }
+
         .pagination button:disabled {
             background-color: #ccc;
             cursor: not-allowed;
+        }
+
+        .page-transition {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(255, 255, 255, 0.5);
+            display: none;
+            animation: page-turn 1s forwards;
+        }
+
+        @keyframes page-turn {
+            0% {
+                transform: rotateY(0deg);
+            }
+            100% {
+                transform: rotateY(90deg);
+            }
         }
     </style>
 </head>
 <body>
 
     <header>
-        <h1>Álbum Familiar</h1>
-        <p>Explora nuestros recuerdos</p>
+        <h1>Álbum Familiar Interactivo</h1>
+        <p>Explora nuestras fotos familiares</p>
     </header>
 
     <div class="album-container" id="albumContainer">
-        <!-- Las carpetas se cargarán aquí automáticamente -->
+        <!-- Las fotos se cargarán aquí -->
     </div>
 
-    <div id="fileContainer" class="file-container" style="display:none;">
-        <!-- Los archivos se cargarán aquí -->
-    </div>
-
-    <div id="paginationContainer" class="pagination" style="display:none;">
+    <div class="pagination" id="paginationContainer">
         <!-- Paginación -->
     </div>
+
+    <div class="modal" id="modal">
+        <span class="close" id="closeModal">&times;</span>
+        <img id="modalImg" src="" alt="Imagen ampliada">
+    </div>
+
+    <div class="page-transition" id="pageTransition"></div>
 
     <footer>
         <p>Álbum Familiar - Hecho con 💖 por [Tu Nombre]</p>
@@ -104,102 +141,66 @@
 
     <script>
         const repoUrl = 'https://api.github.com/repos/Album12w/album/contents/';
-        let currentFolder = '';
+        const itemsPerPage = 4;
         let currentPage = 1;
-        const itemsPerPage = 10;
+        let files = [];
 
         // Función para cargar las carpetas
         async function loadAlbums() {
             try {
                 const response = await fetch(repoUrl);
                 const data = await response.json();
-
-                // Filtrar solo las carpetas
                 const folders = data.filter(item => item.type === 'dir');
+                files = folders; // Guardamos las carpetas de las fotos
 
-                const container = document.getElementById('albumContainer');
-                container.innerHTML = ''; // Limpiar contenedor antes de cargar
-
-                folders.forEach(folder => {
-                    const albumCard = document.createElement('div');
-                    albumCard.className = 'album-card';
-                    albumCard.onclick = () => loadFolderContents(folder.url, folder.name);
-
-                    const albumTitle = document.createElement('h3');
-                    albumTitle.textContent = folder.name;
-                    albumCard.appendChild(albumTitle);
-
-                    container.appendChild(albumCard);
-                });
+                loadPage(currentPage);
             } catch (error) {
                 console.error('Error al cargar las carpetas:', error);
             }
         }
 
-        // Función para cargar los archivos de la carpeta y permitir paginación
-        async function loadFolderContents(folderUrl, folderName) {
-            currentFolder = folderUrl;
-            currentPage = 1;
-
-            const fileContainer = document.getElementById('fileContainer');
-            const paginationContainer = document.getElementById('paginationContainer');
-            fileContainer.style.display = 'none';
-            paginationContainer.style.display = 'none';
-
-            try {
-                const response = await fetch(folderUrl);
-                const files = await response.json();
-
-                const paginatedFiles = paginateFiles(files);
-                showFiles(paginatedFiles);
-
-                paginationContainer.style.display = 'block';
-                fileContainer.style.display = 'block';
-            } catch (error) {
-                console.error('Error al cargar los archivos:', error);
-            }
-        }
-
-        // Función para paginar los archivos
-        function paginateFiles(files) {
-            const startIndex = (currentPage - 1) * itemsPerPage;
+        // Función para cargar los archivos por página
+        function loadPage(page) {
+            const startIndex = (page - 1) * itemsPerPage;
             const endIndex = startIndex + itemsPerPage;
-            return files.slice(startIndex, endIndex);
-        }
+            const currentFiles = files.slice(startIndex, endIndex);
 
-        // Función para mostrar los archivos paginados
-        function showFiles(files) {
-            const fileContainer = document.getElementById('fileContainer');
-            fileContainer.innerHTML = ''; // Limpiar contenedor antes de mostrar archivos
+            const albumContainer = document.getElementById('albumContainer');
+            albumContainer.innerHTML = '';
 
-            files.forEach(file => {
-                const fileUrl = file.download_url;
-                const fileCard = document.createElement('div');
-                fileCard.className = 'album-card';
+            currentFiles.forEach(file => {
+                const albumCard = document.createElement('div');
+                albumCard.className = 'album-card';
+                albumCard.onclick = () => showImage(file.url);
 
-                if (file.name.match(/\.(jpg|jpeg|png|gif)$/i)) {
-                    const img = document.createElement('img');
-                    img.src = fileUrl;
-                    fileCard.appendChild(img);
-                } else if (file.name.match(/\.(mp4|webm)$/i)) {
-                    const video = document.createElement('video');
-                    video.src = fileUrl;
-                    video.controls = true;
-                    fileCard.appendChild(video);
-                }
+                const img = document.createElement('img');
+                img.src = file.download_url;
+                albumCard.appendChild(img);
 
-                fileContainer.appendChild(fileCard);
+                albumContainer.appendChild(albumCard);
             });
 
-            // Actualizar paginación
-            updatePagination(files.length);
+            updatePagination();
+        }
+
+        // Función para mostrar la imagen ampliada en un modal
+        function showImage(url) {
+            const modal = document.getElementById('modal');
+            const modalImg = document.getElementById('modalImg');
+            modalImg.src = url;
+            modal.style.display = 'flex';
+
+            const closeModal = document.getElementById('closeModal');
+            closeModal.onclick = () => {
+                modal.style.display = 'none';
+            };
         }
 
         // Función para actualizar los botones de paginación
-        function updatePagination(totalFiles) {
-            const totalPages = Math.ceil(totalFiles / itemsPerPage);
+        function updatePagination() {
             const paginationContainer = document.getElementById('paginationContainer');
-            paginationContainer.innerHTML = ''; // Limpiar contenedor de paginación
+            const totalPages = Math.ceil(files.length / itemsPerPage);
+            paginationContainer.innerHTML = '';
 
             const prevButton = document.createElement('button');
             prevButton.textContent = 'Anterior';
@@ -217,7 +218,14 @@
         // Función para cambiar de página
         function changePage(page) {
             currentPage = page;
-            loadFolderContents(currentFolder, currentFolder);
+            loadPage(currentPage);
+
+            // Animación de cambio de página
+            const pageTransition = document.getElementById('pageTransition');
+            pageTransition.style.display = 'block';
+            setTimeout(() => {
+                pageTransition.style.display = 'none';
+            }, 1000);
         }
 
         // Cargar las carpetas al inicio
