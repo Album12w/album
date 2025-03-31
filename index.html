@@ -194,14 +194,15 @@
 <script src="https://kit.fontawesome.com/a076d05399.js"></script>
 <script>
     const repoUrl = 'https://api.github.com/repos/Album12w/album/contents/';
-    const huggingFaceModelUrl = 'https://huggingface.co/api/models/CineMax/gdrivelatino';
+    const huggingFaceApiUrl = 'https://huggingface.co/api/models/CineMax/gdrivelatino';
+
     let currentFolder = '';
     let images = [];
     let currentPage = 1;
     const imagesPerPage = 4;
     let currentFolderData = [];
 
-    // Función para cargar las carpetas desde GitHub
+    // Función para cargar las carpetas desde el repositorio de GitHub
     async function loadAlbums() {
         try {
             const response = await fetch(repoUrl);
@@ -217,7 +218,7 @@
                 albumCard.onclick = () => loadSubfolders(folder.url, folder.name);
 
                 const img = document.createElement('img');
-                img.src = 'https://ih1.redbubble.net/image.3548006043.9571/flat,750x,075,f-pad,750x1000,f8f8f8.u1.webp'; // Imagen representativa
+                img.src = 'https://ih1.redbubble.net/image.3548006043.9571/flat,750x,075,f-pad,750x1000,f8f8f8.u1.webp'; // URL externa para la imagen representativa de la carpeta
                 albumCard.appendChild(img);
 
                 const albumTitle = document.createElement('h4');
@@ -231,7 +232,36 @@
         }
     }
 
-    // Función para cargar las subcarpetas de GitHub
+    // Función para cargar las imágenes de Hugging Face
+    async function loadHuggingFaceImages() {
+        try {
+            const response = await fetch(huggingFaceApiUrl);
+            const data = await response.json();
+            
+            // Verificar si la respuesta contiene imágenes o videos
+            if (data && data.siblings && Array.isArray(data.siblings)) {
+                const imageGallery = document.getElementById('imageGallery');
+                imageGallery.innerHTML = '';
+
+                data.siblings.forEach(item => {
+                    const imageCard = document.createElement('div');
+                    imageCard.className = 'image-card';
+
+                    const img = document.createElement('img');
+                    img.src = item.thumbnail; // Asegúrate que la API de Hugging Face devuelve este campo
+                    img.onclick = () => openImageModal(item.url);
+                    imageCard.appendChild(img);
+                    imageGallery.appendChild(imageCard);
+                });
+
+                document.getElementById('imageGallery').style.display = 'flex';
+            }
+        } catch (error) {
+            console.error('Error al cargar las imágenes de Hugging Face:', error);
+        }
+    }
+
+    // Función para cargar las subcarpetas de una carpeta seleccionada
     async function loadSubfolders(folderUrl, folderName) {
         currentFolder = folderName;
         const albumContainer = document.getElementById('albumContainer');
@@ -269,7 +299,7 @@
                 subfolderCard.onclick = () => loadSubfolders(folder.url, folder.name);
 
                 const img = document.createElement('img');
-                img.src = 'https://ih1.redbubble.net/image.3548006043.9571/flat,750x,075,f-pad,750x1000,f8f8f8.u1.webp'; // Imagen representativa
+                img.src = 'https://ih1.redbubble.net/image.3548006043.9571/flat,750x,075,f-pad,750x1000,f8f8f8.u1.webp';
                 subfolderCard.appendChild(img);
 
                 const subfolderTitle = document.createElement('h4');
@@ -303,33 +333,6 @@
             imageCard.appendChild(img);
             imageGallery.appendChild(imageCard);
         });
-
-        loadHuggingFaceImages(); // Cargar imágenes de Hugging Face
-    }
-
-    // Función para cargar las imágenes de Hugging Face
-    async function loadHuggingFaceImages() {
-        try {
-            const response = await fetch(huggingFaceModelUrl);
-            const modelData = await response.json();
-            
-            // Imágenes o recursos que quieras cargar del modelo
-            const huggingFaceImages = modelData.siblings || []; // Cambia esta línea según lo que el modelo devuelva (si tiene imágenes asociadas)
-
-            const imageGallery = document.getElementById('imageGallery');
-            huggingFaceImages.forEach(image => {
-                const imageCard = document.createElement('div');
-                imageCard.className = 'image-card';
-                const img = document.createElement('img');
-                img.src = image.url; // Suponiendo que haya URLs de imágenes asociadas
-                img.onclick = () => openImageModal(image.url);
-                imageCard.appendChild(img);
-                imageGallery.appendChild(imageCard);
-            });
-
-        } catch (error) {
-            console.error('Error al cargar las imágenes de Hugging Face:', error);
-        }
     }
 
     // Función para cambiar de página
@@ -381,6 +384,7 @@
 
     // Cargar las carpetas al iniciar la página
     loadAlbums();
+    loadHuggingFaceImages(); // Cargar imágenes de Hugging Face
 </script>
 
 </body>
