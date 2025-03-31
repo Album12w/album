@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Álbum Familiar</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f4;
+            margin: 0;
+            padding: 0;
+        }
+        header {
+            background-color: #333;
+            color: #fff;
+            text-align: center;
+            padding: 20px;
+        }
+        .album-container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 20px;
+            padding: 20px;
+            justify-content: center;
+        }
+        .album-card {
+            width: 300px;
+            padding: 20px;
+            background-color: #fff;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            border-radius: 10px;
+            text-align: center;
+        }
+        .album-card h3 {
+            margin: 10px 0;
+        }
+        .album-card a {
+            text-decoration: none;
+            color: #333;
+        }
+        .album-card img, .album-card video {
+            width: 100%;
+            height: auto;
+            border-radius: 8px;
+            margin-bottom: 15px;
+        }
+        footer {
+            background-color: #333;
+            color: white;
+            text-align: center;
+            padding: 10px;
+            position: fixed;
+            width: 100%;
+            bottom: 0;
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <h1>Álbum Familiar</h1>
+        <p>Explora nuestros recuerdos</p>
+    </header>
+
+    <div class="album-container" id="albumContainer">
+        <!-- Las carpetas se cargarán aquí automáticamente -->
+    </div>
+
+    <footer>
+        <p>Álbum Familiar - Hecho con 💖 por [Tu Nombre]</p>
+    </footer>
+
+    <script>
+        // URL de tu repositorio en GitHub
+        const repoUrl = 'https://api.github.com/repos/Album12w/album/contents/';
+
+        // Función para cargar las carpetas y archivos desde la API de GitHub
+        async function loadAlbums() {
+            try {
+                const response = await fetch(repoUrl);
+                const data = await response.json();
+
+                // Filtrar solo las carpetas
+                const folders = data.filter(item => item.type === 'dir');
+
+                // Cargar las carpetas en el contenedor
+                const container = document.getElementById('albumContainer');
+                folders.forEach(folder => {
+                    const albumCard = document.createElement('div');
+                    albumCard.className = 'album-card';
+
+                    // Crear la tarjeta para cada carpeta
+                    const albumTitle = document.createElement('h3');
+                    const albumLink = document.createElement('a');
+                    albumLink.href = folder.html_url;  // Enlace directo a la carpeta en GitHub
+                    albumLink.textContent = folder.name;
+                    albumTitle.appendChild(albumLink);
+                    albumCard.appendChild(albumTitle);
+
+                    // Llamar a la función para cargar los archivos dentro de la carpeta
+                    loadFiles(folder.url, albumCard);
+
+                    container.appendChild(albumCard);
+                });
+            } catch (error) {
+                console.error('Error al cargar las carpetas:', error);
+            }
+        }
+
+        // Función para cargar los archivos dentro de una carpeta
+        async function loadFiles(folderUrl, albumCard) {
+            try {
+                const response = await fetch(folderUrl);
+                const files = await response.json();
+
+                // Filtrar y mostrar los archivos (imágenes y videos)
+                files.forEach(file => {
+                    const fileUrl = file.download_url;
+
+                    // Si es imagen (formatos comunes como .jpg, .png, .gif)
+                    if (file.name.match(/\.(jpg|jpeg|png|gif)$/i)) {
+                        const img = document.createElement('img');
+                        img.src = fileUrl;
+                        albumCard.appendChild(img);
+                    }
+                    // Si es video (formatos comunes como .mp4, .webm)
+                    else if (file.name.match(/\.(mp4|webm)$/i)) {
+                        const video = document.createElement('video');
+                        video.src = fileUrl;
+                        video.controls = true;  // Agregar controles para el video
+                        albumCard.appendChild(video);
+                    }
+                });
+            } catch (error) {
+                console.error('Error al cargar los archivos de la carpeta:', error);
+            }
+        }
+
+        // Llamar a la función para cargar las carpetas
+        loadAlbums();
+    </script>
+
+</body>
+</html>
