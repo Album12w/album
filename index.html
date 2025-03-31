@@ -4,84 +4,85 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Álbum Familiar</title>
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.1.3/css/bootstrap.min.css">
     <style>
         body {
             font-family: Arial, sans-serif;
+            background-color: #f4f4f4;
             margin: 0;
             padding: 0;
-            background-color: #f4f4f4;
         }
 
         header {
             background-color: #333;
-            color: #fff;
+            color: white;
             text-align: center;
             padding: 20px;
         }
 
-        .folder-container {
+        .container {
+            margin-top: 20px;
+        }
+
+        .album-container {
             display: flex;
             flex-wrap: wrap;
-            gap: 20px;
-            padding: 20px;
+            gap: 15px;
             justify-content: center;
         }
 
-        .folder-card {
-            width: 150px;
-            height: 150px;
+        .album-card {
+            width: 250px;
+            height: 250px;
             background-color: #fff;
             border-radius: 10px;
             box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
-            display: flex;
-            align-items: center;
-            justify-content: center;
             cursor: pointer;
-            overflow: hidden;
-            transition: transform 0.3s ease-in-out;
+            transition: transform 0.3s;
         }
 
-        .folder-card:hover {
-            transform: scale(1.1);
+        .album-card:hover {
+            transform: scale(1.05);
         }
 
-        .folder-card img {
+        .album-card img {
             width: 100%;
             height: 100%;
             object-fit: cover;
+            border-radius: 10px;
         }
 
-        .folder-card h3 {
-            position: absolute;
-            color: white;
-            font-size: 18px;
-            font-weight: bold;
+        .album-card h4 {
+            text-align: center;
+            margin-top: 10px;
+            font-size: 1.2rem;
         }
 
-        .file-container {
-            display: grid;
-            grid-template-columns: repeat(4, 1fr);
-            gap: 20px;
-            padding: 20px;
+        .image-gallery {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
             justify-content: center;
+            margin-top: 20px;
+            display: none;
+            transition: transform 0.5s ease-in-out;
         }
 
-        .file-card {
+        .image-card {
+            width: 230px;
+            height: 230px;
             background-color: #fff;
             border-radius: 10px;
-            overflow: hidden;
             box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
             cursor: pointer;
-            transition: transform 0.3s ease-in-out;
+            overflow: hidden;
         }
 
-        .file-card img, .file-card video {
+        .image-card img {
             width: 100%;
-            height: auto;
-        }
-
-        .file-card:hover {
-            transform: scale(1.05);
+            height: 100%;
+            object-fit: cover;
+            border-radius: 10px;
         }
 
         .modal {
@@ -104,228 +105,259 @@
 
         .modal .close {
             position: absolute;
-            top: 10px;
-            right: 10px;
+            top: 20px;
+            right: 20px;
             color: white;
             font-size: 30px;
             cursor: pointer;
         }
 
-        .pagination {
+        .pagination-container {
             text-align: center;
             margin-top: 20px;
         }
 
-        .pagination button {
-            padding: 10px;
-            margin: 5px;
-            border: none;
+        .page-button {
+            padding: 15px;
+            margin: 0 20px;
+            cursor: pointer;
             background-color: #333;
             color: white;
-            cursor: pointer;
-            border-radius: 5px;
+            border-radius: 50%;
+            border: none;
+            font-size: 20px;
         }
 
-        .pagination button:disabled {
+        .page-button:hover {
+            background-color: #555;
+        }
+
+        .page-button:disabled {
             background-color: #ccc;
             cursor: not-allowed;
         }
 
-        /* Animación de transición entre páginas */
-        .page-transition {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background-color: rgba(255, 255, 255, 0.5);
-            display: none;
-            animation: page-turn 1s forwards;
+        .page-button i {
+            font-size: 25px;
         }
 
-        @keyframes page-turn {
-            0% {
-                transform: rotateY(0deg);
-            }
-            100% {
-                transform: rotateY(90deg);
-            }
+        .back-button {
+            padding: 10px 20px;
+            margin-top: 20px;
+            background-color: #333;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+
+        .back-button:hover {
+            background-color: #555;
         }
     </style>
 </head>
 <body>
 
-    <header>
-        <h1>Álbum Familiar</h1>
-        <p>Explora nuestras fotos y videos</p>
-    </header>
+<header>
+    <h1>Álbum Familiar</h1>
+    <p>Explora nuestras fotos</p>
+</header>
 
-    <div class="folder-container" id="folderContainer">
-        <!-- Las carpetas se cargarán aquí -->
+<div class="container">
+    <div class="album-container" id="albumContainer">
+        <!-- Aquí se cargarán las carpetas -->
     </div>
 
-    <div class="file-container" id="fileContainer" style="display: none;">
-        <!-- Los archivos de la carpeta se cargarán aquí -->
+    <div class="image-gallery" id="imageGallery">
+        <!-- Aquí se cargarán las imágenes dentro de una carpeta -->
     </div>
 
-    <div class="pagination" id="paginationContainer" style="display: none;">
-        <!-- Paginación -->
+    <div class="pagination-container" id="paginationContainer">
+        <!-- Paginación con flechas -->
+        <button class="page-button" id="prevPageBtn" onclick="changePage('prev')" disabled>
+            <i class="fas fa-chevron-left"></i>
+        </button>
+        <button class="page-button" id="nextPageBtn" onclick="changePage('next')" disabled>
+            <i class="fas fa-chevron-right"></i>
+        </button>
     </div>
 
-    <div class="modal" id="modal">
-        <span class="close" id="closeModal">&times;</span>
-        <img id="modalImg" src="" alt="Imagen ampliada">
-    </div>
+    <button class="back-button" id="backButton" style="display:none;">Volver Atrás</button>
+</div>
 
-    <div class="page-transition" id="pageTransition"></div>
+<!-- Modal para imágenes -->
+<div class="modal" id="imageModal">
+    <span class="close" id="closeModal">&times;</span>
+    <img id="modalImage" src="" alt="Imagen Ampliada">
+</div>
 
-    <footer>
-        <p>Álbum Familiar - Hecho con 💖 por [Tu Nombre]</p>
-    </footer>
+<script src="https://kit.fontawesome.com/a076d05399.js"></script>
+<script>
+    const repoUrl = 'https://api.github.com/repos/Album12w/album/contents/';
+    let currentFolder = '';
+    let images = [];
+    let currentPage = 1;
+    const imagesPerPage = 4;
+    let currentFolderData = [];
 
-    <script>
-        const repoUrl = 'https://api.github.com/repos/Album12w/album/contents/';
-        const itemsPerPage = 4;
-        let currentPage = 1;
-        let files = [];
-        let currentFolderUrl = '';
-        let currentFolderName = '';
+    // Función para cargar las carpetas desde el repositorio de GitHub
+    async function loadAlbums() {
+        try {
+            const response = await fetch(repoUrl);
+            const data = await response.json();
 
-        // Función para cargar las carpetas
-        async function loadAlbums() {
-            try {
-                const response = await fetch(repoUrl);
-                const data = await response.json();
+            const folders = data.filter(item => item.type === 'dir');
+            const albumContainer = document.getElementById('albumContainer');
+            albumContainer.innerHTML = '';
 
-                // Filtrar solo las carpetas
-                const folders = data.filter(item => item.type === 'dir');
-                const folderContainer = document.getElementById('folderContainer');
-                folderContainer.innerHTML = ''; // Limpiar contenedor antes de cargar
+            folders.forEach(folder => {
+                const albumCard = document.createElement('div');
+                albumCard.className = 'album-card';
+                albumCard.onclick = () => loadSubfolders(folder.url, folder.name);
 
-                folders.forEach(folder => {
-                    const folderCard = document.createElement('div');
-                    folderCard.className = 'folder-card';
-                    folderCard.onclick = () => loadFolderContents(folder.url, folder.name);
+                const img = document.createElement('img');
+                img.src = `https://raw.githubusercontent.com/Album12w/album/main/${folder.name}/representative-image.jpg`; // Asegúrate de tener una imagen representativa en cada carpeta
+                albumCard.appendChild(img);
 
-                    // Usar una imagen representativa de la carpeta desde GitHub (o una predeterminada si no tienes)
-                    const img = document.createElement('img');
-                    img.src = 'https://raw.githubusercontent.com/Album12w/album/main/' + folder.name + '/representative-image.jpg';
-                    folderCard.appendChild(img);
+                const albumTitle = document.createElement('h4');
+                albumTitle.textContent = folder.name;
+                albumCard.appendChild(albumTitle);
 
-                    const title = document.createElement('h3');
-                    title.textContent = folder.name;
-                    folderCard.appendChild(title);
-
-                    folderContainer.appendChild(folderCard);
-                });
-            } catch (error) {
-                console.error('Error al cargar las carpetas:', error);
-            }
-        }
-
-        // Función para cargar los archivos de la carpeta
-        async function loadFolderContents(folderUrl, folderName) {
-            currentFolderUrl = folderUrl;
-            currentFolderName = folderName;
-            currentPage = 1;
-            const fileContainer = document.getElementById('fileContainer');
-            const paginationContainer = document.getElementById('paginationContainer');
-
-            // Limpiar los contenedores antes de cargar
-            fileContainer.style.display = 'none';
-            paginationContainer.style.display = 'none';
-            fileContainer.innerHTML = '';
-            paginationContainer.innerHTML = '';
-
-            try {
-                const response = await fetch(folderUrl);
-                const data = await response.json();
-                files = data.filter(item => item.type === 'file');
-                const paginatedFiles = paginateFiles(files);
-
-                showFiles(paginatedFiles);
-                paginationContainer.style.display = 'block';
-                fileContainer.style.display = 'block';
-            } catch (error) {
-                console.error('Error al cargar los archivos:', error);
-            }
-        }
-
-        // Función para paginar los archivos
-        function paginateFiles(files) {
-            const startIndex = (currentPage - 1) * itemsPerPage;
-            const endIndex = startIndex + itemsPerPage;
-            return files.slice(startIndex, endIndex);
-        }
-
-        // Función para mostrar los archivos
-        function showFiles(files) {
-            const fileContainer = document.getElementById('fileContainer');
-            fileContainer.innerHTML = '';
-
-            files.forEach(file => {
-                const fileCard = document.createElement('div');
-                fileCard.className = 'file-card';
-
-                if (file.name.match(/\.(jpg|jpeg|png|gif)$/i)) {
-                    const img = document.createElement('img');
-                    img.src = file.download_url;
-                    img.onclick = () => showImage(file.download_url);
-                    fileCard.appendChild(img);
-                } else if (file.name.match(/\.(mp4|webm)$/i)) {
-                    const video = document.createElement('video');
-                    video.src = file.download_url;
-                    video.controls = true;
-                    fileCard.appendChild(video);
-                }
-
-                fileContainer.appendChild(fileCard);
+                albumContainer.appendChild(albumCard);
             });
-
-            updatePagination();
+        } catch (error) {
+            console.error('Error al cargar las carpetas:', error);
         }
+    }
 
-        // Función para mostrar la imagen ampliada
-        function showImage(url) {
-            const modal = document.getElementById('modal');
-            const modalImg = document.getElementById('modalImg');
-            modalImg.src = url;
-            modal.style.display = 'flex';
+    // Función para cargar las subcarpetas de una carpeta seleccionada
+    async function loadSubfolders(folderUrl, folderName) {
+        currentFolder = folderName;
+        const albumContainer = document.getElementById('albumContainer');
+        const backButton = document.getElementById('backButton');
+        const imageGallery = document.getElementById('imageGallery');
+        const paginationContainer = document.getElementById('paginationContainer');
 
-            const closeModal = document.getElementById('closeModal');
-            closeModal.onclick = () => {
-                modal.style.display = 'none';
-            };
+        // Ocultar las carpetas y mostrar el botón de "volver"
+        albumContainer.style.display = 'none';
+        backButton.style.display = 'block';
+
+        try {
+            const response = await fetch(folderUrl);
+            currentFolderData = await response.json();
+
+            const subfolders = currentFolderData.filter(item => item.type === 'dir');
+            const imageFiles = currentFolderData.filter(item => item.type === 'file' && /\.(jpg|jpeg|png|gif)$/i.test(item.name));
+
+            // Si hay imágenes, cargarlas
+            if (imageFiles.length > 0) {
+                images = imageFiles;
+                currentPage = 1; // Resetear página cuando se selecciona una nueva carpeta
+                displayImagesForPage(currentPage);
+                imageGallery.style.display = 'flex';
+                paginationContainer.style.display = 'block';
+                updatePaginationButtons();
+            } else {
+                imageGallery.style.display = 'none';
+                paginationContainer.style.display = 'none';
+            }
+
+            // Mostrar las subcarpetas si las hay
+            const subfolderContainer = document.createElement('div');
+            subfolderContainer.className = 'album-container';
+            subfolders.forEach(folder => {
+                const subfolderCard = document.createElement('div');
+                subfolderCard.className = 'album-card';
+                subfolderCard.onclick = () => loadSubfolders(folder.url, folder.name);
+
+                const img = document.createElement('img');
+                img.src = `https://raw.githubusercontent.com/Album12w/album/main/${folder.name}/representative-image.jpg`; // Asegúrate de tener una imagen representativa
+                subfolderCard.appendChild(img);
+
+                const subfolderTitle = document.createElement('h4');
+                subfolderTitle.textContent = folder.name;
+                subfolderCard.appendChild(subfolderTitle);
+
+                subfolderContainer.appendChild(subfolderCard);
+            });
+            albumContainer.parentElement.appendChild(subfolderContainer);
+
+        } catch (error) {
+            console.error('Error al cargar las subcarpetas:', error);
         }
+    }
 
-        // Función para actualizar los botones de paginación
-        function updatePagination() {
-            const paginationContainer = document.getElementById('paginationContainer');
-            const totalPages = Math.ceil(files.length / itemsPerPage);
-            paginationContainer.innerHTML = '';
+    // Función para mostrar las imágenes de la página actual
+    function displayImagesForPage(page) {
+        const imageGallery = document.getElementById('imageGallery');
+        imageGallery.innerHTML = '';
 
-            const prevButton = document.createElement('button');
-            prevButton.textContent = 'Anterior';
-            prevButton.disabled = currentPage === 1;
-            prevButton.onclick = () => changePage(currentPage - 1);
-            paginationContainer.appendChild(prevButton);
+        const startIndex = (page - 1) * imagesPerPage;
+        const endIndex = startIndex + imagesPerPage;
+        const currentImages = images.slice(startIndex, endIndex);
 
-            const nextButton = document.createElement('button');
-            nextButton.textContent = 'Siguiente';
-            nextButton.disabled = currentPage === totalPages;
-            nextButton.onclick = () => changePage(currentPage + 1);
-            paginationContainer.appendChild(nextButton);
+        currentImages.forEach(image => {
+            const imageCard = document.createElement('div');
+            imageCard.className = 'image-card';
+            const img = document.createElement('img');
+            img.src = image.download_url;
+            img.onclick = () => openImageModal(image.download_url);
+            imageCard.appendChild(img);
+            imageGallery.appendChild(imageCard);
+        });
+    }
+
+    // Función para cambiar de página
+    function changePage(direction) {
+        if (direction === 'next') {
+            currentPage++;
+        } else if (direction === 'prev') {
+            currentPage--;
         }
+        displayImagesForPage(currentPage);
+        updatePaginationButtons();
+    }
 
-        // Función para cambiar de página
-        function changePage(page) {
-            currentPage = page;
-            const paginatedFiles = paginateFiles(files);
-            showFiles(paginatedFiles);
-        }
+    // Actualizar los botones de paginación
+    function updatePaginationButtons() {
+        const prevButton = document.getElementById('prevPageBtn');
+        const nextButton = document.getElementById('nextPageBtn');
 
-        // Cargar las carpetas al inicio
-        loadAlbums();
-    </script>
+        prevButton.disabled = currentPage === 1;
+        nextButton.disabled = currentPage * imagesPerPage >= images.length;
+    }
+
+    // Abrir la imagen en un modal
+    function openImageModal(imageUrl) {
+        const modal = document.getElementById('imageModal');
+        const modalImage = document.getElementById('modalImage');
+        modalImage.src = imageUrl;
+        modal.style.display = 'flex';
+    }
+
+    // Cerrar el modal
+    document.getElementById('closeModal').onclick = function () {
+        const modal = document.getElementById('imageModal');
+        modal.style.display = 'none';
+    }
+
+    // Volver atrás
+    document.getElementById('backButton').onclick = function () {
+        const albumContainer = document.getElementById('albumContainer');
+        const imageGallery = document.getElementById('imageGallery');
+        const paginationContainer = document.getElementById('paginationContainer');
+        const backButton = document.getElementById('backButton');
+
+        // Mostrar las carpetas principales y ocultar la vista de imágenes
+        albumContainer.style.display = 'flex';
+        imageGallery.style.display = 'none';
+        paginationContainer.style.display = 'none';
+        backButton.style.display = 'none';
+    };
+
+    // Cargar las carpetas al iniciar la página
+    loadAlbums();
+</script>
+
 </body>
 </html>
