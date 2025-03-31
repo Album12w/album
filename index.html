@@ -3,14 +3,19 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Álbum Familiar</title>
+    <title>Explorador de Carpetas</title>
     <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.1.3/css/bootstrap.min.css">
-    <style>
-        body {
+</head>
+<body>
+ <style>
+       body {
             font-family: Arial, sans-serif;
             background-color: #f4f4f4;
             margin: 0;
             padding: 0;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
         }
 
         header {
@@ -18,73 +23,53 @@
             color: white;
             text-align: center;
             padding: 20px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
         }
 
         .container {
-            margin-top: 20px;
+            flex-grow: 1;
+            overflow: hidden;
         }
 
-        .album-container {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 15px;
-            justify-content: center;
-        }
-
-        .album-card {
-            width: 250px;
-            height: 250px;
-            background-color: #fff;
-            border-radius: 10px;
-            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
-            cursor: pointer;
-            transition: transform 0.3s;
-        }
-
-        .album-card:hover {
-            transform: scale(1.05);
-        }
-
-        .album-card img {
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
-            border-radius: 10px;
-        }
-
-        .album-card h4 {
-            text-align: center;
-            margin-top: 10px;
-            font-size: 1.2rem;
-        }
-
-        .image-gallery {
+        .folder-list, .media-gallery {
             display: flex;
             flex-wrap: wrap;
             gap: 15px;
             justify-content: center;
             margin-top: 20px;
-            display: none;
-            transition: transform 0.5s ease-in-out;
+            padding: 0 10px;
+            transition: all 0.3s ease-in-out;
         }
 
-        .image-card {
-            width: 230px;
-            height: 230px;
+        .folder-card, .gallery-card {
+            width: 45%; /* Dos por fila en dispositivos móviles */
             background-color: #fff;
             border-radius: 10px;
             box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
             cursor: pointer;
             overflow: hidden;
+            transition: transform 0.2s ease-in-out;
         }
 
-        .image-card img {
+        .folder-card:hover, .gallery-card:hover {
+            transform: scale(1.05);
+        }
+
+        .folder-card img, .gallery-card img, .gallery-card video {
             width: 100%;
-            height: 100%;
+            height: 200px;
             object-fit: cover;
             border-radius: 10px;
         }
 
+        /* Pantallas grandes: tres por fila */
+        @media (min-width: 768px) {
+            .folder-card, .gallery-card {
+                width: 30%;
+            }
+        }
+
+        /* Modal */
         .modal {
             display: none;
             position: fixed;
@@ -98,7 +83,7 @@
             z-index: 999;
         }
 
-        .modal img {
+        .modal img, .modal video {
             max-width: 80%;
             max-height: 80%;
         }
@@ -113,32 +98,24 @@
         }
 
         .pagination-container {
-            text-align: center;
+            display: flex;
+            justify-content: center;
             margin-top: 20px;
         }
 
         .page-button {
-            padding: 15px;
-            margin: 0 20px;
+            padding: 12px;
+            margin: 0 10px;
             cursor: pointer;
             background-color: #333;
             color: white;
             border-radius: 50%;
             border: none;
-            font-size: 20px;
+            font-size: 18px;
         }
 
         .page-button:hover {
             background-color: #555;
-        }
-
-        .page-button:disabled {
-            background-color: #ccc;
-            cursor: not-allowed;
-        }
-
-        .page-button i {
-            font-size: 25px;
         }
 
         .back-button {
@@ -155,236 +132,214 @@
             background-color: #555;
         }
     </style>
-</head>
-<body>
-
 <header>
-    <h1>Álbum Familiar</h1>
-    <p>Explora nuestras fotos</p>
+    <h1>Album Familiar</h1>
+    <p>Desarrollado por Kobayashi Dev.</p>
 </header>
 
 <div class="container">
-    <div class="album-container" id="albumContainer">
+    <div id="folderList" class="folder-list">
         <!-- Aquí se cargarán las carpetas -->
     </div>
 
-    <div class="image-gallery" id="imageGallery">
-        <!-- Aquí se cargarán las imágenes dentro de una carpeta -->
+    <div id="mediaGallery" class="media-gallery" style="display: none;">
+        <!-- Aquí se cargarán las imágenes y videos -->
     </div>
 
-    <div class="pagination-container" id="paginationContainer">
-        <!-- Paginación con flechas -->
-        <button class="page-button" id="prevPageBtn" onclick="changePage('prev')" disabled>
-            <i class="fas fa-chevron-left"></i>
-        </button>
-        <button class="page-button" id="nextPageBtn" onclick="changePage('next')" disabled>
-            <i class="fas fa-chevron-right"></i>
-        </button>
-    </div>
+   
 
-    <button class="back-button" id="backButton" style="display:none;">Volver Atrás</button>
+    <button class="back-button" id="backButton" style="display:none;" onclick="goBack()">Volver Atrás</button>
 </div>
 
-<!-- Modal para imágenes -->
-<div class="modal" id="imageModal">
+<!-- Modal para imágenes y videos -->
+<div class="modal" id="mediaModal">
     <span class="close" id="closeModal">&times;</span>
-    <img id="modalImage" src="" alt="Imagen Ampliada">
+    <div id="modalMediaContainer"></div>
 </div>
 
-<script src="https://kit.fontawesome.com/a076d05399.js"></script>
 <script>
-    const repoUrl = 'https://api.github.com/repos/Album12w/album/contents/';
-    const huggingFaceApiUrl = 'https://huggingface.co/api/models/CineMax/gdrivelatino';
-
-    let currentFolder = '';
-    let images = [];
+    const apiUrl = 'https://huggingface.co/api/models/CineMax/gdrivelatino/tree/main'; // URL de la API
+    let currentFolder = null;
+    let files = []; // Archivos de la carpeta actual
+    let folders = []; // Carpetas obtenidas
     let currentPage = 1;
-    const imagesPerPage = 4;
-    let currentFolderData = [];
+    const itemsPerPage = 5;
 
-    // Función para cargar las carpetas desde el repositorio de GitHub
-    async function loadAlbums() {
+    // Función para obtener las carpetas desde la API
+    async function fetchFolders() {
         try {
-            const response = await fetch(repoUrl);
+            const response = await fetch(apiUrl);
             const data = await response.json();
 
-            const folders = data.filter(item => item.type === 'dir');
-            const albumContainer = document.getElementById('albumContainer');
-            albumContainer.innerHTML = '';
-
-            folders.forEach(folder => {
-                const albumCard = document.createElement('div');
-                albumCard.className = 'album-card';
-                albumCard.onclick = () => loadSubfolders(folder.url, folder.name);
-
-                const img = document.createElement('img');
-                img.src = 'https://ih1.redbubble.net/image.3548006043.9571/flat,750x,075,f-pad,750x1000,f8f8f8.u1.webp'; // URL externa para la imagen representativa de la carpeta
-                albumCard.appendChild(img);
-
-                const albumTitle = document.createElement('h4');
-                albumTitle.textContent = folder.name;
-                albumCard.appendChild(albumTitle);
-
-                albumContainer.appendChild(albumCard);
-            });
+            // Filtrar las carpetas y archivos
+            const directories = data.filter(item => item.type === 'directory');
+            displayFolders(directories);
         } catch (error) {
-            console.error('Error al cargar las carpetas:', error);
+            console.error("Error al obtener las carpetas:", error);
         }
     }
 
-    // Función para cargar las imágenes de Hugging Face
-    async function loadHuggingFaceImages() {
-        try {
-            const response = await fetch(huggingFaceApiUrl);
-            const data = await response.json();
-            
-            // Verificar si la respuesta contiene imágenes o videos
-            if (data && data.siblings && Array.isArray(data.siblings)) {
-                const imageGallery = document.getElementById('imageGallery');
-                imageGallery.innerHTML = '';
+    // Función para mostrar las carpetas
+    function displayFolders(folders) {
+        const folderList = document.getElementById('folderList');
+        folderList.innerHTML = ''; // Limpiar las carpetas previas
 
-                data.siblings.forEach(item => {
-                    const imageCard = document.createElement('div');
-                    imageCard.className = 'image-card';
+        folders.forEach(folder => {
+            const folderCard = document.createElement('div');
+            folderCard.classList.add('folder-card');
+            const folderIcon = document.createElement('img');
+            folderIcon.src = "https://upload.wikimedia.org/wikipedia/commons/thumb/a/a7/Folder_icon.svg/1024px-Folder_icon.svg.png"; // Icono de carpeta
+            folderCard.appendChild(folderIcon);
+            folderCard.innerHTML += `<p>${folder.path}</p>`;
+            folderCard.addEventListener('click', () => openFolder(folder));
 
-                    const img = document.createElement('img');
-                    img.src = item.thumbnail; // Asegúrate que la API de Hugging Face devuelve este campo
-                    img.onclick = () => openImageModal(item.url);
-                    imageCard.appendChild(img);
-                    imageGallery.appendChild(imageCard);
-                });
-
-                document.getElementById('imageGallery').style.display = 'flex';
-            }
-        } catch (error) {
-            console.error('Error al cargar las imágenes de Hugging Face:', error);
-        }
-    }
-
-    // Función para cargar las subcarpetas de una carpeta seleccionada
-    async function loadSubfolders(folderUrl, folderName) {
-        currentFolder = folderName;
-        const albumContainer = document.getElementById('albumContainer');
-        const backButton = document.getElementById('backButton');
-        const imageGallery = document.getElementById('imageGallery');
-        const paginationContainer = document.getElementById('paginationContainer');
-
-        albumContainer.style.display = 'none';
-        backButton.style.display = 'block';
-
-        try {
-            const response = await fetch(folderUrl);
-            currentFolderData = await response.json();
-
-            const subfolders = currentFolderData.filter(item => item.type === 'dir');
-            const imageFiles = currentFolderData.filter(item => item.type === 'file' && /\.(jpg|jpeg|png|gif)$/i.test(item.name));
-
-            if (imageFiles.length > 0) {
-                images = imageFiles;
-                currentPage = 1;
-                displayImagesForPage(currentPage);
-                imageGallery.style.display = 'flex';
-                paginationContainer.style.display = 'block';
-                updatePaginationButtons();
-            } else {
-                imageGallery.style.display = 'none';
-                paginationContainer.style.display = 'none';
-            }
-
-            const subfolderContainer = document.createElement('div');
-            subfolderContainer.className = 'album-container';
-            subfolders.forEach(folder => {
-                const subfolderCard = document.createElement('div');
-                subfolderCard.className = 'album-card';
-                subfolderCard.onclick = () => loadSubfolders(folder.url, folder.name);
-
-                const img = document.createElement('img');
-                img.src = 'https://ih1.redbubble.net/image.3548006043.9571/flat,750x,075,f-pad,750x1000,f8f8f8.u1.webp';
-                subfolderCard.appendChild(img);
-
-                const subfolderTitle = document.createElement('h4');
-                subfolderTitle.textContent = folder.name;
-                subfolderCard.appendChild(subfolderTitle);
-
-                subfolderContainer.appendChild(subfolderCard);
-            });
-            albumContainer.parentElement.appendChild(subfolderContainer);
-
-        } catch (error) {
-            console.error('Error al cargar las subcarpetas:', error);
-        }
-    }
-
-    // Función para mostrar las imágenes de la página actual
-    function displayImagesForPage(page) {
-        const imageGallery = document.getElementById('imageGallery');
-        imageGallery.innerHTML = '';
-
-        const startIndex = (page - 1) * imagesPerPage;
-        const endIndex = startIndex + imagesPerPage;
-        const currentImages = images.slice(startIndex, endIndex);
-
-        currentImages.forEach(image => {
-            const imageCard = document.createElement('div');
-            imageCard.className = 'image-card';
-            const img = document.createElement('img');
-            img.src = image.download_url;
-            img.onclick = () => openImageModal(image.download_url);
-            imageCard.appendChild(img);
-            imageGallery.appendChild(imageCard);
+            folderList.appendChild(folderCard);
         });
     }
 
-    // Función para cambiar de página
-    function changePage(direction) {
-        if (direction === 'next') {
-            currentPage++;
-        } else if (direction === 'prev') {
-            currentPage--;
-        }
-        displayImagesForPage(currentPage);
-        updatePaginationButtons();
+    // Función para abrir una carpeta y cargar los archivos
+    async function openFolder(folder) {
+        currentFolder = folder.path;
+        const folderUrl = `https://huggingface.co/api/models/CineMax/gdrivelatino/tree/main/${folder.path}`;
+        const response = await fetch(folderUrl);
+        const data = await response.json();
+
+        // Filtrar los archivos y subcarpetas dentro de la carpeta
+        const subfolders = data.filter(item => item.type === 'directory');
+        files = data.filter(item => item.type === 'file');
+        displayFolders(subfolders); // Mostrar subcarpetas
+        displayFiles(); // Mostrar archivos multimedia
+
+        // Mostrar contenido de las carpetas
+        document.getElementById('folderList').style.display = 'flex';
+        document.getElementById('mediaGallery').style.display = 'flex';
+        document.getElementById('backButton').style.display = 'inline-block';
+
+        // Configurar la paginación
+        configurePagination();
     }
 
-    // Actualizar los botones de paginación
-    function updatePaginationButtons() {
-        const prevButton = document.getElementById('prevPageBtn');
-        const nextButton = document.getElementById('nextPageBtn');
+    // Función para mostrar los archivos de la carpeta
+    function displayFiles() {
+        const mediaGallery = document.getElementById('mediaGallery');
+        mediaGallery.innerHTML = '';  // Limpiar galería de medios
 
-        prevButton.disabled = currentPage === 1;
-        nextButton.disabled = currentPage * imagesPerPage >= images.length;
+        // Paginación: calcular qué archivos mostrar
+        const startIndex = (currentPage - 1) * itemsPerPage;
+        const paginatedFiles = files.slice(startIndex, startIndex + itemsPerPage);
+
+        paginatedFiles.forEach(file => {
+            const fileCard = document.createElement('div');
+            fileCard.classList.add('gallery-card');
+            const fileExtension = file.path.split('.').pop().toLowerCase();
+
+            if (['jpg', 'jpeg', 'png', 'gif'].includes(fileExtension)) {
+                const img = document.createElement('img');
+                img.src = `https://huggingface.co/CineMax/gdrivelatino/resolve/main/${file.path}`;
+                img.alt = "Imagen";
+                img.addEventListener('click', () => openModal(file.path));
+                fileCard.appendChild(img);
+                mediaGallery.appendChild(fileCard);
+            } else if (['mp4', 'mov', 'avi'].includes(fileExtension)) {
+                const video = document.createElement('video');
+                video.src = `https://huggingface.co/CineMax/gdrivelatino/resolve/main/${file.path}`;
+                video.controls = true;
+                video.addEventListener('click', () => openModal(file.path));
+                fileCard.appendChild(video);
+                mediaGallery.appendChild(fileCard);
+            }
+        });
     }
 
-    // Abrir la imagen en un modal
-    function openImageModal(imageUrl) {
-        const modal = document.getElementById('imageModal');
-        const modalImage = document.getElementById('modalImage');
-        modalImage.src = imageUrl;
+    // Función para abrir el modal con la imagen o video
+    function openModal(filePath) {
+        const modal = document.getElementById('mediaModal');
+        const modalMediaContainer = document.getElementById('modalMediaContainer');
+        const fileExtension = filePath.split('.').pop().toLowerCase();
+
         modal.style.display = 'flex';
+
+        if (['jpg', 'jpeg', 'png', 'gif'].includes(fileExtension)) {
+            const img = document.createElement('img');
+            img.src = `https://huggingface.co/CineMax/gdrivelatino/resolve/main/${filePath}`;
+            modalMediaContainer.innerHTML = '';  // Limpiar el contenido anterior
+            modalMediaContainer.appendChild(img);
+        } else if (['mp4', 'mov', 'avi'].includes(fileExtension)) {
+            const video = document.createElement('video');
+            video.src = `https://huggingface.co/CineMax/gdrivelatino/resolve/main/${filePath}`;
+            video.controls = true;
+            modalMediaContainer.innerHTML = '';  // Limpiar el contenido anterior
+            modalMediaContainer.appendChild(video);
+        }
     }
 
-    // Cerrar el modal
-    document.getElementById('closeModal').onclick = function () {
-        const modal = document.getElementById('imageModal');
+    // Función para cerrar el modal
+    document.getElementById('closeModal').addEventListener('click', () => {
+        const modal = document.getElementById('mediaModal');
         modal.style.display = 'none';
+    });
+
+    // Función para volver atrás
+    function goBack() {
+        document.getElementById('folderList').style.display = 'flex';
+        document.getElementById('mediaGallery').style.display = 'none';
+        document.getElementById('backButton').style.display = 'none';
+        displayFolders([]);
+        displayFiles([]);
     }
 
-    // Volver atrás
-    document.getElementById('backButton').onclick = function () {
-        const albumContainer = document.getElementById('albumContainer');
-        const imageGallery = document.getElementById('imageGallery');
-        const paginationContainer = document.getElementById('paginationContainer');
-        const backButton = document.getElementById('backButton');
+    // Función para configurar la paginación
+    function configurePagination() {
+        const paginationContainer = document.getElementById('pagination');
+        paginationContainer.innerHTML = ''; // Limpiar la paginación anterior
 
-        albumContainer.style.display = 'flex';
-        imageGallery.style.display = 'none';
-        paginationContainer.style.display = 'none';
-        backButton.style.display = 'none';
-    };
+        const totalPages = Math.ceil(files.length / itemsPerPage);
 
-    // Cargar las carpetas al iniciar la página
-    loadAlbums();
-    loadHuggingFaceImages(); // Cargar imágenes de Hugging Face
+        if (totalPages > 1) {
+            for (let i = 1; i <= totalPages; i++) {
+                const pageButton = document.createElement('button');
+                pageButton.classList.add('page-button');
+                pageButton.textContent = i;
+                pageButton.addEventListener('click', () => changePage(i));
+
+                paginationContainer.appendChild(pageButton);
+            }
+
+            paginationContainer.style.display = 'flex';
+        }
+    }
+
+    // Función para cambiar de página
+    function changePage(pageNumber) {
+        currentPage = pageNumber;
+        displayFiles();
+    }
+
+    // Agregar la funcionalidad de deslizar en dispositivos móviles
+    let touchStartX = 0;
+
+    document.getElementById('mediaGallery').addEventListener('touchstart', (e) => {
+        touchStartX = e.touches[0].clientX;
+    });
+
+    document.getElementById('mediaGallery').addEventListener('touchend', (e) => {
+        const touchEndX = e.changedTouches[0].clientX;
+
+        if (touchStartX - touchEndX > 50) {
+            // Deslizar hacia la izquierda
+            if (currentPage < Math.ceil(files.length / itemsPerPage)) {
+                changePage(currentPage + 1);
+            }
+        } else if (touchEndX - touchStartX > 50) {
+            // Deslizar hacia la derecha
+            if (currentPage > 1) {
+                changePage(currentPage - 1);
+            }
+        }
+    });
+
+    // Iniciar carga de carpetas cuando se cargue la página
+    window.onload = fetchFolders;
 </script>
 
 </body>
