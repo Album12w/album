@@ -31,6 +31,7 @@
             box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
             border-radius: 10px;
             text-align: center;
+            cursor: pointer;
         }
         .album-card h3 {
             margin: 10px 0;
@@ -45,6 +46,12 @@
             border-radius: 8px;
             margin-bottom: 15px;
         }
+        .file-container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 20px;
+            padding: 20px;
+        }
         footer {
             background-color: #333;
             color: white;
@@ -53,6 +60,22 @@
             position: fixed;
             width: 100%;
             bottom: 0;
+        }
+        .pagination {
+            text-align: center;
+            padding: 20px;
+        }
+        .pagination button {
+            padding: 10px;
+            margin: 5px;
+            border: none;
+            background-color: #333;
+            color: white;
+            cursor: pointer;
+        }
+        .pagination button:disabled {
+            background-color: #ccc;
+            cursor: not-allowed;
         }
     </style>
 </head>
@@ -67,15 +90,25 @@
         <!-- Las carpetas se cargarán aquí automáticamente -->
     </div>
 
+    <div id="fileContainer" class="file-container" style="display:none;">
+        <!-- Los archivos se cargarán aquí -->
+    </div>
+
+    <div id="paginationContainer" class="pagination" style="display:none;">
+        <!-- Paginación -->
+    </div>
+
     <footer>
         <p>Álbum Familiar - Hecho con 💖 por [Tu Nombre]</p>
     </footer>
 
     <script>
-        // URL de tu repositorio en GitHub
         const repoUrl = 'https://api.github.com/repos/Album12w/album/contents/';
+        let currentFolder = '';
+        let currentPage = 1;
+        const itemsPerPage = 10;
 
-        // Función para cargar las carpetas y archivos desde la API de GitHub
+        // Función para cargar las carpetas
         async function loadAlbums() {
             try {
                 const response = await fetch(repoUrl);
@@ -84,22 +117,17 @@
                 // Filtrar solo las carpetas
                 const folders = data.filter(item => item.type === 'dir');
 
-                // Cargar las carpetas en el contenedor
                 const container = document.getElementById('albumContainer');
+                container.innerHTML = ''; // Limpiar contenedor antes de cargar
+
                 folders.forEach(folder => {
                     const albumCard = document.createElement('div');
                     albumCard.className = 'album-card';
+                    albumCard.onclick = () => loadFolderContents(folder.url, folder.name);
 
-                    // Crear la tarjeta para cada carpeta
                     const albumTitle = document.createElement('h3');
-                    const albumLink = document.createElement('a');
-                    albumLink.href = folder.html_url;  // Enlace directo a la carpeta en GitHub
-                    albumLink.textContent = folder.name;
-                    albumTitle.appendChild(albumLink);
+                    albumTitle.textContent = folder.name;
                     albumCard.appendChild(albumTitle);
-
-                    // Llamar a la función para cargar los archivos dentro de la carpeta
-                    loadFiles(folder.url, albumCard);
 
                     container.appendChild(albumCard);
                 });
@@ -108,36 +136,91 @@
             }
         }
 
-        // Función para cargar los archivos dentro de una carpeta
-        async function loadFiles(folderUrl, albumCard) {
+        // Función para cargar los archivos de la carpeta y permitir paginación
+        async function loadFolderContents(folderUrl, folderName) {
+            currentFolder = folderUrl;
+            currentPage = 1;
+
+            const fileContainer = document.getElementById('fileContainer');
+            const paginationContainer = document.getElementById('paginationContainer');
+            fileContainer.style.display = 'none';
+            paginationContainer.style.display = 'none';
+
             try {
                 const response = await fetch(folderUrl);
                 const files = await response.json();
 
-                // Filtrar y mostrar los archivos (imágenes y videos)
-                files.forEach(file => {
-                    const fileUrl = file.download_url;
+                const paginatedFiles = paginateFiles(files);
+                showFiles(paginatedFiles);
 
-                    // Si es imagen (formatos comunes como .jpg, .png, .gif)
-                    if (file.name.match(/\.(jpg|jpeg|png|gif)$/i)) {
-                        const img = document.createElement('img');
-                        img.src = fileUrl;
-                        albumCard.appendChild(img);
-                    }
-                    // Si es video (formatos comunes como .mp4, .webm)
-                    else if (file.name.match(/\.(mp4|webm)$/i)) {
-                        const video = document.createElement('video');
-                        video.src = fileUrl;
-                        video.controls = true;  // Agregar controles para el video
-                        albumCard.appendChild(video);
-                    }
-                });
+                paginationContainer.style.display = 'block';
+                fileContainer.style.display = 'block';
             } catch (error) {
-                console.error('Error al cargar los archivos de la carpeta:', error);
+                console.error('Error al cargar los archivos:', error);
             }
         }
 
-        // Llamar a la función para cargar las carpetas
+        // Función para paginar los archivos
+        function paginateFiles(files) {
+            const startIndex = (currentPage - 1) * itemsPerPage;
+            const endIndex = startIndex + itemsPerPage;
+            return files.slice(startIndex, endIndex);
+        }
+
+        // Función para mostrar los archivos paginados
+        function showFiles(files) {
+            const fileContainer = document.getElementById('fileContainer');
+            fileContainer.innerHTML = ''; // Limpiar contenedor antes de mostrar archivos
+
+            files.forEach(file => {
+                const fileUrl = file.download_url;
+                const fileCard = document.createElement('div');
+                fileCard.className = 'album-card';
+
+                if (file.name.match(/\.(jpg|jpeg|png|gif)$/i)) {
+                    const img = document.createElement('img');
+                    img.src = fileUrl;
+                    fileCard.appendChild(img);
+                } else if (file.name.match(/\.(mp4|webm)$/i)) {
+                    const video = document.createElement('video');
+                    video.src = fileUrl;
+                    video.controls = true;
+                    fileCard.appendChild(video);
+                }
+
+                fileContainer.appendChild(fileCard);
+            });
+
+            // Actualizar paginación
+            updatePagination(files.length);
+        }
+
+        // Función para actualizar los botones de paginación
+        function updatePagination(totalFiles) {
+            const totalPages = Math.ceil(totalFiles / itemsPerPage);
+            const paginationContainer = document.getElementById('paginationContainer');
+            paginationContainer.innerHTML = ''; // Limpiar contenedor de paginación
+
+            const prevButton = document.createElement('button');
+            prevButton.textContent = 'Anterior';
+            prevButton.disabled = currentPage === 1;
+            prevButton.onclick = () => changePage(currentPage - 1);
+            paginationContainer.appendChild(prevButton);
+
+            const nextButton = document.createElement('button');
+            nextButton.textContent = 'Siguiente';
+            nextButton.disabled = currentPage === totalPages;
+            nextButton.onclick = () => changePage(currentPage + 1);
+            paginationContainer.appendChild(nextButton);
+        }
+
+        // Función para cambiar de página
+        function changePage(page) {
+            currentPage = page;
+            loadFolderContents(currentFolder, currentFolder);
+        }
+
+        // Cargar las carpetas al inicio
         loadAlbums();
     </script>
 
